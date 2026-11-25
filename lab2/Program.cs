@@ -1,88 +1,91 @@
-﻿// Лабораторна робота №2. Варіант 5
-// Інтернет-магазин телефонів. Шаблон Abstract Factory (Абстрактна фабрика)
+﻿using System;
 
-using System;
-using System.Text;
 
-// Базовий клас для всіх телефонів
+
 abstract class Phone
 {
-    public string Model { get; }
-    public string Country { get; }
-    public double Price { get; }
-    public int DeliveryDays { get; }
+    public string Model;
+    public double Price;
 
-    protected Phone(string model, string country, double price, int deliveryDays)
+    public void Print()
+    {
+        Console.WriteLine("Телефон: " + Model + ", ціна: " + Price + " $");
+    }
+}
+
+
+abstract class Delivery
+{
+    public string Country;
+    public int Days;
+
+    public void Print()
+    {
+        Console.WriteLine("Країна виробник: " + Country + ", термін доставки: " + Days + " днів");
+    }
+}
+
+
+
+class UsaPhone : Phone
+{
+    public UsaPhone(string model, double basePrice)
     {
         Model = model;
-        Country = country;
-        Price = price;
-        DeliveryDays = deliveryDays;
+        Price = basePrice; 
     }
+}
 
-    public override string ToString()
+class UsaDelivery : Delivery
+{
+    public UsaDelivery()
     {
-        return $"Телефон: {Model}\nКраїна виробника: {Country}\n" +
-               $"Вартість: {Price} $\nТермін доставки: {DeliveryDays} днів";
+        Country = "США";
+        Days = 14;
     }
 }
 
-// Абстрактні продукти — моделі телефонів (однакові в обох країнах)
-abstract class NovaX : Phone
+
+class ChinaPhone : Phone
 {
-    protected NovaX(string country, double price, int days) : base("Nova X", country, price, days) { }
+    public ChinaPhone(string model, double basePrice)
+    {
+        Model = model;
+        Price = basePrice * 0.7; 
+    }
 }
 
-abstract class NovaLite : Phone
+class ChinaDelivery : Delivery
 {
-    protected NovaLite(string country, double price, int days) : base("Nova Lite", country, price, days) { }
+    public ChinaDelivery()
+    {
+        Country = "Китай";
+        Days = 30;
+    }
 }
 
-// Конкретні продукти: телефони, зібрані в США
-class UsaNovaX : NovaX
-{
-    public UsaNovaX() : base("США", 999, 7) { }
-}
 
-class UsaNovaLite : NovaLite
-{
-    public UsaNovaLite() : base("США", 499, 7) { }
-}
 
-// Конкретні продукти: телефони, зібрані у філіалі в Китаї
-class ChinaNovaX : NovaX
-{
-    public ChinaNovaX() : base("Китай", 699, 21) { }
-}
-
-class ChinaNovaLite : NovaLite
-{
-    public ChinaNovaLite() : base("Китай", 349, 21) { }
-}
-
-// Абстрактна фабрика: створює сімейство телефонів
 interface IPhoneFactory
 {
-    NovaX CreateNovaX();
-    NovaLite CreateNovaLite();
+    Phone CreatePhone(string model, double basePrice);
+    Delivery CreateDelivery();
 }
 
-// Конкретна фабрика: завод у США
-class UsaPhoneFactory : IPhoneFactory
+
+class UsaFactory : IPhoneFactory
 {
-    public NovaX CreateNovaX() { return new UsaNovaX(); }
-    public NovaLite CreateNovaLite() { return new UsaNovaLite(); }
+    public Phone CreatePhone(string model, double basePrice) { return new UsaPhone(model, basePrice); }
+    public Delivery CreateDelivery() { return new UsaDelivery(); }
 }
 
-// Конкретна фабрика: філіал у Китаї
-class ChinaPhoneFactory : IPhoneFactory
+class ChinaFactory : IPhoneFactory
 {
-    public NovaX CreateNovaX() { return new ChinaNovaX(); }
-    public NovaLite CreateNovaLite() { return new ChinaNovaLite(); }
+    public Phone CreatePhone(string model, double basePrice) { return new ChinaPhone(model, basePrice); }
+    public Delivery CreateDelivery() { return new ChinaDelivery(); }
 }
 
-// Інтернет-магазин (клієнт): працює тільки з IPhoneFactory і Phone,
-// не знаючи, яка саме фабрика і які конкретні класи використовуються
+
 class OnlineShop
 {
     private IPhoneFactory factory;
@@ -92,11 +95,14 @@ class OnlineShop
         this.factory = factory;
     }
 
-    public Phone Order(int model)
+    public void Order(string model, double basePrice)
     {
-        if (model == 1) return factory.CreateNovaX();
-        if (model == 2) return factory.CreateNovaLite();
-        return null;
+        Phone phone = factory.CreatePhone(model, basePrice);
+        Delivery delivery = factory.CreateDelivery();
+
+        Console.WriteLine("\n--- Ваше замовлення ---");
+        phone.Print();
+        delivery.Print();
     }
 }
 
@@ -104,42 +110,33 @@ class Program
 {
     static void Main()
     {
-        Console.OutputEncoding = Encoding.UTF8;
-        Console.InputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Console.InputEncoding = System.Text.Encoding.UTF8;
 
-        while (true)
-        {
-            Console.WriteLine("\n=== ІНТЕРНЕТ-МАГАЗИН ТЕЛЕФОНІВ NOVA ===");
-            Console.WriteLine("Оберіть країну виробника:");
-            Console.WriteLine("1. США");
-            Console.WriteLine("2. Китай");
-            Console.WriteLine("0. Вихід");
-            Console.Write("Ваш вибір: ");
-            string country = Console.ReadLine();
+        // каталог моделей і базова ціна (у США)
+        string[] models = { "Phone 15", "Phone 15 Pro", "Phone Mini" };
+        double[] prices = { 800, 1100, 600 };
 
-            IPhoneFactory factory;
-            if (country == "1") factory = new UsaPhoneFactory();
-            else if (country == "2") factory = new ChinaPhoneFactory();
-            else if (country == "0") return;
-            else { Console.WriteLine("Невірний вибір."); continue; }
+        Console.WriteLine("Оберіть модель:");
+        for (int i = 0; i < models.Length; i++)
+            Console.WriteLine((i + 1) + ". " + models[i]);
+        int m = int.Parse(Console.ReadLine()) - 1;
 
-            Console.WriteLine("\nОберіть модель:");
-            Console.WriteLine("1. Nova X");
-            Console.WriteLine("2. Nova Lite");
-            Console.Write("Ваш вибір: ");
-            int.TryParse(Console.ReadLine(), out int model);
+        Console.WriteLine("Оберіть країну виробника:");
+        Console.WriteLine("1. США");
+        Console.WriteLine("2. Китай");
+        string c = Console.ReadLine();
 
-            OnlineShop shop = new OnlineShop(factory);
-            Phone phone = shop.Order(model);
+      
+        IPhoneFactory factory;
+        if (c == "1")
+            factory = new UsaFactory();
+        else
+            factory = new ChinaFactory();
 
-            if (phone == null)
-            {
-                Console.WriteLine("Невірна модель.");
-                continue;
-            }
+        OnlineShop shop = new OnlineShop(factory);
+        shop.Order(models[m], prices[m]);
 
-            Console.WriteLine("\nЗамовлення оформлено!");
-            Console.WriteLine(phone);
-        }
+        Console.ReadKey();
     }
 }
